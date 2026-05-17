@@ -32,7 +32,7 @@ void SImGuiLayout::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-		// Remove accumulated scale to manually control how we draw data. 
+		// Remove accumulated scale to manually control how we draw data.
 		SNew(SScaleBox)
 		.IgnoreInheritedScale(true)
 		.HAlign(HAlign_Fill)

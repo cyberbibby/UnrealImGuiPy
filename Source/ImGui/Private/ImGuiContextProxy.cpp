@@ -11,8 +11,20 @@
 // Include ImPlot here so we can call `ImPlot::CreateContext`
 #include <implot.h>
 
+// Include Icons
+#include <IconsFontAwesome6.h>
+#include <IconsMaterialDesign.h>
+#include <IconsKenney.h>
+#include "FontKenney/KenneyIcon.cpp"
+
 #include <GenericPlatform/GenericPlatformFile.h>
+#include <HAL/FileManager.h>
 #include <Misc/Paths.h>
+#include <Interfaces/IPluginManager.h>
+
+#include <NetImguiModule.h>
+
+#include "imgui_internal.h"
 
 
 static constexpr float DEFAULT_CANVAS_WIDTH = 3840.f;
@@ -92,10 +104,14 @@ FImGuiContextProxy::FImGuiContextProxy(const FString& InName, int32 InContextInd
 
 	// Start initialization.
 	ImGuiIO& IO = ImGui::GetIO();
-	InputState.IOFunctions = IO;
 
 	// Set session data storage.
 	IO.IniFilename = IniFilename.c_str();
+
+	IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+	// Initialize UE's default font that support Chinese as ImGui default font.
+	InitCustomFonts(IO, InDPIScale);
 
 	// Start with the default canvas size.
 	ResetDisplaySize();
@@ -131,6 +147,75 @@ FImGuiContextProxy::~FImGuiContextProxy()
 	}
 }
 
+void FImGuiContextProxy::InitCustomFonts(ImGuiIO& IO, const float InDPIScale) const
+{
+	ImFontConfig FontConfig;
+	FontConfig.FontDataOwnedByAtlas = false;
+
+	ImFont* DefaultFont = IO.Fonts->AddFontFromFileTTF(
+#if PLATFORM_WINDOWS
+		TCHAR_TO_ANSI(*FPaths::Combine(FPaths::EngineContentDir(), TEXT("Slate"), TEXT("Fonts"), TEXT("Roboto-Regular.ttf"))),
+#else
+		TCHAR_TO_ANSI(*IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(
+			*FPaths::Combine(FPaths::EngineContentDir(), TEXT("Slate"), TEXT("Fonts"), TEXT("Roboto-Regular.ttf")))),
+#endif
+		FMath::RoundToFloat(16.f * InDPIScale), &FontConfig, IO.Fonts->GetGlyphRangesDefault());
+
+	FontConfig.MergeMode = true;
+	FontConfig.PixelSnapH = true;
+
+	IO.Fonts->AddFontFromFileTTF(
+#if PLATFORM_WINDOWS
+		TCHAR_TO_ANSI(*FPaths::Combine(FPaths::EngineContentDir(), TEXT("Slate"), TEXT("Fonts"), TEXT("DroidSansFallback.ttf"))),
+#else
+		TCHAR_TO_ANSI(*IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(
+			*FPaths::Combine(FPaths::EngineContentDir(), TEXT("Slate"), TEXT("Fonts"), TEXT("DroidSansFallback.ttf")))),
+#endif
+		FMath::RoundToFloat(16.f * InDPIScale), &FontConfig, IO.Fonts->GetGlyphRangesChineseFull());
+
+	const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("ImGui"));
+	constexpr ImWchar IconRanges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
+	FontConfig.GlyphOffset.y = 3.f;
+	FontConfig.GlyphMinAdvanceX = 13.0f; // Use if you want to make the icon monospaced
+	IO.Fonts->AddFontFromFileTTF(
+#if PLATFORM_WINDOWS
+		TCHAR_TO_ANSI(*FPaths::Combine(Plugin->GetContentDir(), TEXT("Fonts"), TEXT(FONT_ICON_FILE_NAME_FAS))),
+#else
+		TCHAR_TO_ANSI(*IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(
+			*FPaths::Combine(Plugin->GetContentDir(), TEXT("Fonts"), TEXT(FONT_ICON_FILE_NAME_FAS)))),
+#endif
+		FMath::RoundToFloat(16.f * InDPIScale), &FontConfig, IconRanges); // Font Awesome 6 Icons
+
+	constexpr ImWchar MatIconRanges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
+	FontConfig.GlyphOffset.y = 5.f;
+	IO.Fonts->AddFontFromFileTTF(
+#if PLATFORM_WINDOWS
+		TCHAR_TO_ANSI(*FPaths::Combine(Plugin->GetContentDir(), TEXT("Fonts"), TEXT(FONT_ICON_FILE_NAME_MD))),
+#else
+		TCHAR_TO_ANSI(*IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(
+			*FPaths::Combine(Plugin->GetContentDir(), TEXT("Fonts"), TEXT(FONT_ICON_FILE_NAME_MD)))),
+#endif
+		FMath::RoundToFloat(16.f * InDPIScale), &FontConfig, MatIconRanges); // Google's Material Design icons
+
+	constexpr ImWchar KenneyIconRanges[] = {ICON_MIN_KI, ICON_MAX_KI, 0};
+	FontConfig.GlyphOffset.y = 3.f;
+	IO.Fonts->AddFontFromMemoryCompressedTTF(KenneyIcon_compressed_data, KenneyIcon_compressed_size,
+		FMath::RoundToFloat(16.f * InDPIScale), &FontConfig, KenneyIconRanges);
+
+	IO.Fonts->AddFontFromFileTTF(
+#if PLATFORM_WINDOWS
+		TCHAR_TO_ANSI(*FPaths::Combine(Plugin->GetContentDir(), TEXT("Fonts"), TEXT("JetBrainsMonoNL-Medium.ttf"))),
+#else
+		TCHAR_TO_ANSI(*IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(
+			*FPaths::Combine(Plugin->GetContentDir(), TEXT("Fonts"), TEXT("JetBrainsMonoNL-Medium.ttf")))),
+#endif
+		18.0f);
+
+	IO.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
+	IO.Fonts->Build();
+	IO.FontDefault = DefaultFont;
+}
+
 void FImGuiContextProxy::ResetDisplaySize()
 {
 	DisplaySize = { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT };
@@ -156,12 +241,22 @@ void FImGuiContextProxy::DrawEarlyDebug()
 	if (bIsFrameStarted && !bIsDrawEarlyDebugCalled)
 	{
 		bIsDrawEarlyDebugCalled = true;
+		if (FNetImguiModule::Get().IsConnected())
+		{
+			if (FNetImguiModule::Get().SetupDrawAtRemote())
+			{
+				BroadcastMultiContextEarlyDebug();
+				BroadcastWorldEarlyDebug();
+			}
+		}
+		else
+		{
+			SetAsCurrent();
 
-		SetAsCurrent();
-
-		// Delegates called in order specified in FImGuiDelegates.
-		BroadcastMultiContextEarlyDebug();
-		BroadcastWorldEarlyDebug();
+			// Delegates called in order specified in FImGuiDelegates.
+			BroadcastMultiContextEarlyDebug();
+			BroadcastWorldEarlyDebug();
+		}
 	}
 }
 
@@ -174,11 +269,22 @@ void FImGuiContextProxy::DrawDebug()
 		// Make sure that early debug is always called first to guarantee order specified in FImGuiDelegates.
 		DrawEarlyDebug();
 
-		SetAsCurrent();
+		if (FNetImguiModule::Get().IsConnected())
+		{
+			if (FNetImguiModule::Get().SetupDrawAtRemote())
+			{
+				BroadcastWorldDebug();
+				BroadcastMultiContextDebug();
+			}
+		}
+		else
+		{
+			SetAsCurrent();
 
-		// Delegates called in order specified in FImGuiDelegates.
-		BroadcastWorldDebug();
-		BroadcastMultiContextDebug();
+			// Delegates called in order specified in FImGuiDelegates.
+			BroadcastWorldDebug();
+			BroadcastMultiContextDebug();
+		}
 	}
 }
 
@@ -188,9 +294,9 @@ void FImGuiContextProxy::Tick(float DeltaSeconds)
 	if (LastFrameNumber < GFrameNumber)
 	{
 		LastFrameNumber = GFrameNumber;
-
+#if !NETIMGUI_ENABLED
 		SetAsCurrent();
-
+#endif
 		if (bIsFrameStarted)
 		{
 			// Make sure that draw events are called before the end of the frame.
@@ -225,14 +331,22 @@ void FImGuiContextProxy::BeginFrame(float DeltaTime)
 {
 	if (!bIsFrameStarted)
 	{
-		ImGuiIO& IO = ImGui::GetIO();
-		IO.DeltaTime = DeltaTime;
+		if (FNetImguiModule::Get().IsConnected())
+		{
+			FNetImguiModule::Get().NewFrame();
+		}
+		else
+		{
+			SetAsCurrent();
 
-		InputState.ClearUpdateState();
+			ImGuiIO& IO = ImGui::GetIO();
+			IO.DeltaTime = DeltaTime;
+			IO.DisplaySize = ImVec2(DisplaySize.X, DisplaySize.Y);
 
-		IO.DisplaySize = { (float)DisplaySize.X, (float)DisplaySize.Y };
+			InputState.ClearUpdateState();
 
-		ImGui::NewFrame();
+			ImGui::NewFrame();
+		}
 
 		bIsFrameStarted = true;
 		bIsDrawEarlyDebugCalled = false;
@@ -244,12 +358,24 @@ void FImGuiContextProxy::EndFrame()
 {
 	if (bIsFrameStarted)
 	{
-		// Prepare draw data (after this call we cannot draw to this context until we start a new frame).
-		ImGui::Render();
+		if (FNetImguiModule::Get().IsConnected())
+		{
+			FNetImguiModule::Get().EndFrame(this);
+		}
+		else
+		{
+			SetAsCurrent();
 
-		// Update our draw data, so we can use them later during Slate rendering while ImGui is in the middle of the
-		// next frame.
-		UpdateDrawData(ImGui::GetDrawData());
+			if (ImGui::GetCurrentContext()->WithinFrameScope)
+			{
+				// Prepare draw data (after this call we cannot draw to this context until we start a new frame).
+				ImGui::Render();
+
+				// Update our draw data, so we can use them later during Slate rendering while ImGui is in the middle of the
+				// next frame.
+				UpdateDrawData(ImGui::GetDrawData());
+			}
+		}
 
 		bIsFrameStarted = false;
 	}

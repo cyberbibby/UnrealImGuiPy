@@ -3,7 +3,7 @@
 #pragma once
 
 #include <HAL/IConsoleManager.h>
-
+#include "Framework/Commands/Commands.h"
 
 struct FImGuiKeyInfo;
 class FImGuiModuleProperties;
@@ -47,4 +47,18 @@ private:
 	FAutoConsoleCommand ToggleMouseInputSharingCommand;
 	FAutoConsoleCommand SetMouseInputSharingCommand;
 	FAutoConsoleCommand ToggleDemoCommand;
+};
+
+class FImGuiPluginCommands : public TCommands<FImGuiPluginCommands>
+{
+public:
+	FImGuiPluginCommands()
+		: TCommands(TEXT("ImGui"), NSLOCTEXT("UnrealImGui", "ImGuiPluginName", "ImGui Plugin"), NAME_None, TEXT("FTextBlockStyle"))
+	{
+	}
+
+	// TCommands<> interface
+	virtual void RegisterCommands() override;
+
+	TSharedPtr<FUICommandInfo> ToggleInput;
 };

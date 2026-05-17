@@ -1,24 +1,56 @@
 {
 	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "0.1.0",
+	"Version": 2,
+	"VersionName": "1.92.8",
 	"FriendlyName": "ImGui",
 	"Description": "Dear ImGui is a bloat-free graphical user interface library for C++",
-	"Category": "Debug",
-	"CreatedBy": "Omar Cornut, segross, IDI-Systems, Other contributors",
-	"CreatedByURL": "https://github.com/IDI-Systems/UnrealImGui/graphs/contributors",
-	"DocsURL": "",
+	"Category": "GUI",
+	"CreatedBy": "Omar Cornut, segross, IDI-Systems, Bibby, Other contributors",
+	"CreatedByURL": "https://github.com/segross/UnrealImGui",
+	"DocsURL": "https://github.com/ocornut/imgui",
 	"MarketplaceURL": "",
-	"SupportURL": "",
-	"CanContainContent": false,
+	"SupportURL": "mailto:cyberbibby@163.com",
+	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"Installed": false,
 	"Modules": [
 		{
 			"Name": "ImGui",
-			"Type": "Runtime",
-			"LoadingPhase": "PreDefault"
+			"Type": "DeveloperTool",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [
+				"Win64",
+				"Android",
+				"IOS"
+			]
+		},
+		{
+			"Name": "ImGuiPy",
+			"Type": "DeveloperTool",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [
+				"Win64",
+				"Android",
+				"IOS"
+			]
+		},
+		{
+			"Name": "NetImgui",
+			"Type": "DeveloperTool",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"Android",
+				"IOS"
+			]
+		},
+		{
+			"Name": "NetImguiEditorToolbar",
+			"Type": "EditorNoCommandlet",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64"
+			]
 		}
-	],
-	"IsExperimentalVersion": false
+	]
 }

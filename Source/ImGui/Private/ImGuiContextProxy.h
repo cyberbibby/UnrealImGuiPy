@@ -53,6 +53,9 @@ public:
 	// Reset the desired context display size to default size.
 	void ResetDisplaySize();
 
+	// Initialize UE's default font that support Chinese as ImGui default font.
+	void InitCustomFonts(ImGuiIO& IO, float InDPIScale) const;
+
 	// Get the DPI scale set for this context.
 	float GetDPIScale() const { return DPIScale; }
 
@@ -86,7 +89,8 @@ private:
 	void BeginFrame(float DeltaTime = 1.f / 60.f);
 	void EndFrame();
 
-	void UpdateDrawData(ImDrawData* DrawData);
+	friend class FNetImguiModule;
+	IMGUI_API void UpdateDrawData(ImDrawData* DrawData);
 
 	void BroadcastWorldEarlyDebug();
 	void BroadcastMultiContextEarlyDebug();

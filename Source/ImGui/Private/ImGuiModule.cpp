@@ -13,8 +13,8 @@
 #include "Editor/ImGuiEditor.h"
 #endif
 
+#include "NetImgui_Api.h"
 #include <Interfaces/IPluginManager.h>
-
 
 #define LOCTEXT_NAMESPACE "FImGuiModule"
 

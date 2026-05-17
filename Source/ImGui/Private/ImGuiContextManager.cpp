@@ -282,8 +282,7 @@ void FImGuiContextManager::BuildFontAtlas(const TMap<FName, TSharedPtr<ImFontCon
 				strncpy(CustomFontConfig->Name, TCHAR_TO_ANSI(*CustomFontName.ToString()), 40);
 			}
 
-			ImFont* font{FontAtlas.AddFont(CustomFontConfig.Get())};
-			font->ContainerAtlas = &FontAtlas;
+			FontAtlas.AddFont(CustomFontConfig.Get());
 		}
 
 		unsigned char* Pixels;

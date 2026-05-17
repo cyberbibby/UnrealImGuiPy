@@ -4,14 +4,12 @@
 
 #include <Engine/Texture2D.h>
 #include <Framework/Application/SlateApplication.h>
+#include "RHITypes.h"
+#include "NetImgui_Api.h"
+#include "NetImguiModule.h"
+#include "ImGuiInteroperability.h"
 
 #include <algorithm>
-#include "Misc/EngineVersionComparison.h"
-#if UE_VERSION_OLDER_THAN(5, 2, 0)
-#include "RHI.h"
-#else
-#include "RHITypes.h"
-#endif
 
 
 void FTextureManager::InitializeErrorTexture(const FColor& Color)
@@ -74,7 +72,18 @@ TextureIndex FTextureManager::CreateTextureInternal(const FName& Name, int32 Wid
 	}
 	else
 	{
-		return AddTextureEntry(Name, Texture, true);
+		TextureIndex TexIndex = AddTextureEntry(Name, Texture, true);
+#if NETIMGUI_ENABLED
+		ImTextureID TexID = ImGuiInterops::ToImTextureID(TexIndex);
+		NetImgui::eTexFormat eFmt = SrcBpp == 1 ? NetImgui::eTexFormat::kTexFmtA8 :
+									SrcBpp == 4 ? NetImgui::eTexFormat::kTexFmtRGBA8 :
+									NetImgui::eTexFormat::kTexFmt_Invalid;
+		if (TexIndex != INDEX_NONE && eFmt != NetImgui::eTexFormat::kTexFmt_Invalid && TexID != ImGui::GetIO().Fonts->TexRef.GetTexID())
+		{
+			FNetImguiModule::Get().SendDataTexture(TexID, SrcData, Width, Height, eFmt);
+		}
+#endif
+		return TexIndex;
 	}
 }
 

@@ -3,8 +3,11 @@
 #include "ImGuiModuleCommands.h"
 
 #include "ImGuiModuleProperties.h"
+#if WITH_EDITOR
+#include "LevelEditor.h"
+#include "Kismet2/DebuggerCommands.h"
+#endif
 #include "Utilities/DebugExecBindings.h"
-
 
 const TCHAR* const FImGuiModuleCommands::ToggleInput = TEXT("ImGui.ToggleInput");
 const TCHAR* const FImGuiModuleCommands::ToggleKeyboardNavigation = TEXT("ImGui.ToggleKeyboardNavigation");
@@ -42,6 +45,18 @@ FImGuiModuleCommands::FImGuiModuleCommands(FImGuiModuleProperties& InProperties)
 		TEXT("Toggle ImGui demo."),
 		FConsoleCommandDelegate::CreateRaw(this, &FImGuiModuleCommands::ToggleDemoImpl))
 {
+#if WITH_EDITOR
+	FImGuiPluginCommands::Register();
+
+	if (GIsEditor)
+	{
+		const FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+		LevelEditorModule.GetGlobalLevelEditorActions()->MapAction(
+			FImGuiPluginCommands::Get().ToggleInput,
+			FExecuteAction::CreateRaw(this, &FImGuiModuleCommands::ToggleInputImpl),
+			FCanExecuteAction());
+	}
+#endif
 }
 
 void FImGuiModuleCommands::SetKeyBinding(const TCHAR* CommandName, const FImGuiKeyInfo& KeyInfo)
@@ -93,3 +108,12 @@ void FImGuiModuleCommands::ToggleDemoImpl()
 {
 	Properties.ToggleDemo();
 }
+
+#define LOCTEXT_NAMESPACE "FImGuiModule"
+
+void FImGuiPluginCommands::RegisterCommands()
+{
+	UI_COMMAND(ToggleInput, "Toggle Input", "Toggle ImGui input mode.", EUserInterfaceActionType::Button, FInputChord(EKeys::F12, false, false, false, false));
+}
+
+#undef LOCTEXT_NAMESPACE

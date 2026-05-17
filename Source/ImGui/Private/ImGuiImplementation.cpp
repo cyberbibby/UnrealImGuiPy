@@ -39,18 +39,26 @@ static ImGuiContext* ImGuiContextPtr = nullptr;
 static FImGuiContextHandle ImGuiContextPtrHandle(ImGuiContextPtr);
 
 // Get the global ImGui context pointer (GImGui) indirectly to allow redirections in obsolete modules.
-#define GImGui (ImGuiContextPtrHandle.Get())
+//#define GImGui (ImGuiContextPtrHandle.Get())
 #endif // WITH_EDITOR
 
 #include "imgui.cpp"
 #include "imgui_demo.cpp"
 #include "imgui_draw.cpp"
 #include "imgui_widgets.cpp"
-
+#include "imgui_stacklayout.cpp"
 #include "imgui_tables.cpp"
+#include "misc/cpp/imgui_stdlib.cpp"
 #include "implot.cpp"
 #include "implot_items.cpp"
-#include "implot_demo.cpp"
+
+#include "imgui_toggle.cpp"
+#include "imgui_toggle_palette.cpp"
+#include "imgui_toggle_presets.cpp"
+#include "imgui_toggle_renderer.cpp"
+
+#include "ColorTextEdit.cpp"
+#include "LanguageDefinitions.cpp"
 
 #if PLATFORM_WINDOWS
 #include <Windows/HideWindowsPlatformTypes.h>
